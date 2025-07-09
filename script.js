@@ -7,7 +7,7 @@ const enviarBtn = document.getElementById('enviar');
 // 📷 Activar cámara TRASERA (con fallback a predeterminada)
 navigator.mediaDevices.getUserMedia({
   video: {
-    facingMode: { exact: "environment" } // fuerza cámara trasera
+    facingMode: { ideal: "environment" } // fuerza cámara trasera
   }
 })
 .then(stream => {
