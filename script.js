@@ -60,29 +60,27 @@ enviarBtn.addEventListener('click', () => {
   enviarBtn.disabled = true;
   enviarBtn.textContent = "Enviando...";
 
-  fetch('https://script.google.com/a/macros/babyplant.es/s/AKfycbyx-3ZXycSjeZ7NpKTsnsnoXWVA8MUTdMgldk4zFQtriPjh9ODYPkBNlvxcvr4e20-k2Q/exec', {
+  fetch('https://script.google.com/macros/s/AKfycbyx-3ZXycSjeZ7NpKTsnsnoXWVA8MUTdMgldk4zFQtriPjh9ODYPkBNlvxcvr4e20-k2Q/exec', {
     method: 'POST',
     body: JSON.stringify({ lote }),
     headers: {
       'Content-Type': 'application/json',
     },
   })
-    .then(response => {
-      enviarBtn.disabled = false;
-      enviarBtn.textContent = "Enviar";
+  .then(response => {
+    enviarBtn.disabled = false;
+    enviarBtn.textContent = "Enviar";
 
-      if (response.ok) {
-        alert('✅ Lote enviado correctamente a Google Sheets');
-        resultado.value = '';
-      } else {
-        alert('❌ Error al enviar el lote');
-      }
-    })
-    .catch(error => {
-      enviarBtn.disabled = false;
-      enviarBtn.textContent = "Enviar";
-      console.error('Error de conexión con Google Sheets:', error);
-    });
+    if (response.ok) {
+      alert('✅ Lote enviado correctamente a Google Sheets');
+      resultado.value = '';
+    } else {
+      alert('❌ Error al enviar el lote');
+    }
+  })
+  .catch(error => {
+    enviarBtn.disabled = false;
+    enviarBtn.textContent = "Enviar";
+    console.error('Error de conexión con Google Sheets:', error);
+  });
 });
-
-
