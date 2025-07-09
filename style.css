@@ -1,0 +1,45 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+header {
+  background: #005a3c;
+  color: white;
+  padding: 1em 0;
+}
+
+main {
+  padding: 20px;
+}
+
+.camara {
+  margin-bottom: 20px;
+}
+
+video {
+  width: 80%;
+  max-width: 600px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px 20px;
+  background-color: #007a52;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+textarea {
+  width: 80%;
+  height: 100px;
+  margin-top: 10px;
+}

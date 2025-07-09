@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lectura de Lotes</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>📷 Lectura de Lotes</h1>
+    <p>Captura y envía los códigos de lote directamente a Google Sheets</p>
+  </header>
+
+  <main>
+    <div class="camara">
+      <video id="video" autoplay></video>
+      <button id="capturar">📸 Capturar</button>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
+    <div class="resultado">
+      <h2>Resultado OCR:</h2>
+      <textarea id="resultado" readonly></textarea>
+      <button id="enviar">📤 Enviar a Google Sheets</button>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
