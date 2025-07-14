@@ -11,10 +11,11 @@ body {
 
 /* 🟢 CABECERA */
 header {
-  background: #004d3c;
-  color: white;
+  background: #ffffff;
+  color: #004d3c;
   padding: 1.5em 0;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: background 0.4s ease;
 }
 
 header .logo {
@@ -33,12 +34,14 @@ header h1 {
   margin: 0;
   font-size: 2rem;
   letter-spacing: 1px;
+  color: #004d3c;
 }
 
 header p {
   margin: 0.5em 0 0;
   font-size: 1rem;
-  opacity: 0.9;
+  opacity: 0.8;
+  color: #004d3c;
 }
 
 /* 🔷 CONTENIDO PRINCIPAL */
