@@ -7,7 +7,6 @@ body {
   margin: 0;
   padding: 0;
   text-align: center;
-  transition: background 0.5s ease;
 }
 
 header {
@@ -15,7 +14,6 @@ header {
   color: white;
   padding: 1.5em 0;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s ease-in-out;
 }
 
 header h1 {
@@ -31,7 +29,7 @@ header p {
 }
 
 main {
-  padding: 30px 20px;
+  padding: 20px;
 }
 
 .camara {
@@ -39,16 +37,15 @@ main {
 }
 
 video {
-  width: 85%;
+  width: 100%;
   max-width: 600px;
   border: 3px solid #007a52;
   border-radius: 12px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease-in-out;
 }
 
 button {
-  margin-top: 15px;
+  margin: 10px 5px;
   padding: 12px 24px;
   background-color: #007a52;
   color: white;
@@ -71,8 +68,17 @@ button:disabled {
   transform: none;
 }
 
+#editar {
+  background-color: #ffaa00;
+}
+
+#editar:hover {
+  background-color: #e19a00;
+}
+
 textarea {
-  width: 80%;
+  width: 95%;
+  max-width: 600px;
   height: 120px;
   margin-top: 15px;
   padding: 10px;
@@ -80,12 +86,14 @@ textarea {
   border: 2px solid #ccc;
   border-radius: 8px;
   resize: none;
+  background-color: #fefefe;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
-  transition: border 0.3s ease;
+  transition: border 0.3s ease, background-color 0.3s ease;
 }
 
 textarea:focus {
   border-color: #007a52;
+  background-color: #f8fff9;
   outline: none;
 }
 
@@ -93,5 +101,20 @@ textarea:focus {
   margin-top: 30px;
   font-size: 1.3rem;
   color: #005a3c;
-  transition: color 0.3s ease;
+}
+
+/* 📱 Responsive */
+@media screen and (max-width: 600px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  button {
+    font-size: 0.9rem;
+    padding: 10px 18px;
+  }
+
+  textarea {
+    height: 100px;
+  }
 }

@@ -3,6 +3,7 @@ const canvas = document.getElementById('canvas');
 const capturarBtn = document.getElementById('capturar');
 const resultado = document.getElementById('resultado');
 const enviarBtn = document.getElementById('enviar');
+const editarBtn = document.getElementById('editar');
 
 // 📷 Activar cámara TRASERA (con fallback a predeterminada)
 navigator.mediaDevices
@@ -55,9 +56,24 @@ capturarBtn.addEventListener('click', () => {
     });
 });
 
+// Boton de editado del texto capturado
+editarBtn.addEventListener('click', () => {
+  if (resultado.hasAttribute('readonly')) {
+    resultado.removeAttribute('readonly');
+    resultado.focus();
+    editarBtn.textContent = '✅ Bloquear edición';
+  } else {
+    resultado.setAttribute('readonly', true);
+    editarBtn.textContent = '✏️ Editar manualmente';
+  }
+});
+
 // 📤 Enviar el texto a Google Sheets (usando método GET para evitar CORS)
 enviarBtn.addEventListener('click', () => {
   const lote = resultado.value;
+  resultado.setAttribute('readonly', true);
+  editarBtn.textContent = '✏️ Editar manualmente';
+
   if (!lote) {
     alert('❗ No hay ningún texto OCR para enviar');
     return;
