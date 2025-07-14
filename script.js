@@ -55,7 +55,7 @@ capturarBtn.addEventListener('click', () => {
     });
 });
 
-// 📤 Enviar el texto a Google Sheets
+// 📤 Enviar el texto a Google Sheets (usando método GET para evitar CORS)
 enviarBtn.addEventListener('click', () => {
   const lote = resultado.value;
   if (!lote) {
@@ -66,16 +66,11 @@ enviarBtn.addEventListener('click', () => {
   enviarBtn.disabled = true;
   enviarBtn.textContent = 'Enviando...';
 
-  fetch(
-    'https://script.google.com/macros/s/AKfycbwdAaj3-gRgFRbrzo1Oe3Vxo4fa4kXyr_8xzcpQNmlmHamjCmc9u_wJboWCz-W-9J4B/exec',
-    {
-      method: 'POST',
-      body: JSON.stringify({ lote }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }
-  )
+  const url = `https://script.google.com/macros/s/AKfycbwdAaj3-gRgFRbrzo1Oe3Vxo4fa4kXyr_8xzcpQNmlmHamjCmc9u_wJboWCz-W-9J4B/exec?lote=${encodeURIComponent(
+    lote
+  )}`;
+
+  fetch(url)
     .then((response) => {
       enviarBtn.disabled = false;
       enviarBtn.textContent = 'Enviar';
