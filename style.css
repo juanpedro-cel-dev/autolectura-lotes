@@ -1,45 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to right, #f1f4f6, #e9f0ec);
   color: #333;
   margin: 0;
   padding: 0;
   text-align: center;
+  transition: background 0.5s ease;
 }
 
 header {
-  background: #005a3c;
+  background: #004d3c;
   color: white;
-  padding: 1em 0;
+  padding: 1.5em 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s ease-in-out;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 1px;
+}
+
+header p {
+  margin: 0.5em 0 0;
+  font-size: 1rem;
+  opacity: 0.9;
 }
 
 main {
-  padding: 20px;
+  padding: 30px 20px;
 }
 
 .camara {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 video {
-  width: 80%;
+  width: 85%;
   max-width: 600px;
-  border: 2px solid #ccc;
-  border-radius: 8px;
+  border: 3px solid #007a52;
+  border-radius: 12px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease-in-out;
 }
 
 button {
-  margin-top: 10px;
-  padding: 10px 20px;
+  margin-top: 15px;
+  padding: 12px 24px;
   background-color: #007a52;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background-color: #00a06d;
+  transform: scale(1.05);
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
 }
 
 textarea {
   width: 80%;
-  height: 100px;
-  margin-top: 10px;
+  height: 120px;
+  margin-top: 15px;
+  padding: 10px;
+  font-size: 1rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  resize: none;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+  transition: border 0.3s ease;
+}
+
+textarea:focus {
+  border-color: #007a52;
+  outline: none;
+}
+
+.resultado h2 {
+  margin-top: 30px;
+  font-size: 1.3rem;
+  color: #005a3c;
+  transition: color 0.3s ease;
 }
