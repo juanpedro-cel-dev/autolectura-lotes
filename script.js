@@ -5,19 +5,19 @@ const resultado = document.getElementById('resultado');
 const enviarBtn = document.getElementById('enviar');
 const editarBtn = document.getElementById('editar');
 
-// 🟢 Activar cámara trasera
+// 🟢 Activar cámara trasera o predeterminada
 navigator.mediaDevices
   .getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
   .then((stream) => (video.srcObject = stream))
-  .catch(() => {
+  .catch(() =>
     navigator.mediaDevices
       .getUserMedia({ video: true })
       .then((stream) => (video.srcObject = stream))
       .catch((err) => {
         alert('❌ No se pudo acceder a ninguna cámara');
         console.error('Error de cámara:', err);
-      });
-  });
+      })
+  );
 
 // 📸 Capturar imagen y hacer OCR
 capturarBtn.addEventListener('click', () => {
@@ -45,7 +45,7 @@ capturarBtn.addEventListener('click', () => {
     });
 });
 
-// ✏️ Editar el texto OCR
+// ✏️ Activar edición manual
 editarBtn.addEventListener('click', () => {
   if (resultado.hasAttribute('readonly')) {
     resultado.removeAttribute('readonly');
@@ -57,22 +57,17 @@ editarBtn.addEventListener('click', () => {
   }
 });
 
-// 🧠 Función inteligente de extracción OCR
+// 🧠 Extraer datos desde texto OCR según estructura real y fallback de especie
 function extraerDatosOCR(texto) {
-  const t = texto
-    .toUpperCase()
-    .replace(/[^A-Z0-9ÁÉÍÓÚÜÑ\s\-\/]/g, ' ') // borrar todo lo raro
-    .replace(/\s+/g, ' ')
-    .trim();
+  const limpiar = (str) =>
+    str
+      .toUpperCase()
+      .replace(/[^A-Z0-9ÁÉÍÓÚÜÑ\s\-\/]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-  // 1) Partida: primer grupo de 7 dígitos
-  const partida = (t.match(/\b\d{7}\b/) || [])[0] || '';
+  const lineas = texto.split(/\r?\n/).map(limpiar).filter(Boolean);
 
-  // 2) Lote: primer bloque ≥6 caracteres alfanum/guión distinto de la partida
-  const candidatosLote = t.match(/\b[A-Z0-9\-]{6,}\b/g) || [];
-  const lote = candidatosLote.find((x) => x !== partida) || '';
-
-  // 3) Especie: a partir de la lista real de BabyPlant
   const especies = [
     'LECHUGA',
     'AROMATICAS Y HOJAS',
@@ -87,58 +82,101 @@ function extraerDatosOCR(texto) {
     'TATSOI',
     'PAK CHOI',
   ];
-  const especie = especies.find((e) => t.includes(e)) || '';
 
-  // 4) Variedad: lo que queda entre especie y lote
+  let partida = '';
+  let unidades = '';
+  let lote = '';
+  let especie = '';
   let variedad = '';
-  if (especie && lote) {
-    const rx = new RegExp(especie + '\\s+([A-Z0-9\\s\\-]+?)\\s+' + lote);
-    const m = t.match(rx);
-    if (m) variedad = m[1].trim();
-  }
-  // Si no hubo match, como fallback toma el bloque de 2–3 palabras más largo
-  if (!variedad) {
-    const bloques =
-      t
-        .split(lote)[0]
-        .split(especie)[1]
-        ?.trim()
-        .split(' ')
-        .filter((w) => w.length > 3) || [];
-    variedad = bloques.slice(0, 3).join(' ');
+  let fechas = [];
+
+  for (let i = 0; i < lineas.length; i++) {
+    const l = lineas[i];
+
+    // Partida
+    if (!partida && /^\d{7}$/.test(l)) {
+      partida = l;
+      if (lineas[i + 1] && /^\d{1,5}$/.test(lineas[i + 1])) {
+        unidades = lineas[i + 1];
+      }
+    }
+
+    // Lote
+    if (!lote && /^[A-Z0-9\-]{6,}$/.test(l) && !/^\d{7}$/.test(l)) {
+      lote = l;
+    }
+
+    // Fechas
+    const fechasEnLinea = [
+      ...l.matchAll(/\b\d{2}[-\/]?\d{2}\b/g),
+      ...l.matchAll(/\b\d{4}\b/g),
+    ];
+    fechas.push(
+      ...fechasEnLinea.map((m) =>
+        m[0].includes('-') || m[0].includes('/')
+          ? m[0].replace('/', '-')
+          : m[0].slice(0, 2) + '-' + m[0].slice(2)
+      )
+    );
   }
 
-  // 5) Fechas: busca dd-mm, dd/mm o ddmm
-  const rawFechas = [
-    ...(t.match(/\b\d{2}[-\/]\d{2}\b/g) || []),
-    ...(t.match(/\b\d{4}\b/g) || []),
-  ];
-  const fechas = rawFechas
-    .map((f) =>
-      f.includes('-') || f.includes('/')
-        ? f.replace('/', '-')
-        : f.slice(0, 2) + '-' + f.slice(2)
-    )
+  fechas = fechas
     .filter((f) => /^\d{2}-\d{2}$/.test(f))
     .sort((a, b) => {
-      const [d1, m1] = a.split('-').map(Number),
-        [d2, m2] = b.split('-').map(Number);
+      const [d1, m1] = a.split('-').map(Number);
+      const [d2, m2] = b.split('-').map(Number);
       return m1 !== m2 ? m1 - m2 : d1 - d2;
     });
 
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
 
-  return { partida, lote, especie, variedad, fecha_siembra, fecha_carga };
+  // Especie: de la lista si la hay
+  const especieEncontrada = especies.find((e) =>
+    lineas.some((l) => l.includes(e))
+  );
+  if (especieEncontrada) {
+    especie = especieEncontrada;
+  }
+
+  // Variedad: entre especie y lote
+  let idxEspecie = lineas.findIndex((l) => l.includes(especie));
+  let idxLote = lineas.findIndex((l) => l === lote);
+  if (idxEspecie >= 0 && idxLote > idxEspecie) {
+    variedad = lineas
+      .slice(idxEspecie + 1, idxLote)
+      .join(' ')
+      .trim();
+  }
+
+  // Fallback si no hay especie: usar línea anterior a la variedad
+  if (!especie && variedad) {
+    const idxVariedad = lineas.findIndex((l) => variedad.includes(l));
+    if (idxVariedad > 0) {
+      especie = lineas[idxVariedad - 1];
+    }
+  }
+
+  return {
+    partida,
+    lote,
+    especie,
+    variedad,
+    fecha_siembra,
+    fecha_carga,
+  };
 }
 
-// 📤 Enviar datos a Google Sheets vía GET
+// 📤 Enviar datos a Google Sheets
 enviarBtn.addEventListener('click', () => {
   const texto = resultado.value;
   resultado.setAttribute('readonly', true);
   editarBtn.textContent = '✏️ Editar manualmente';
 
-  if (!texto) return alert('❗ No hay texto OCR para enviar');
+  if (!texto) {
+    alert('❗ No hay texto OCR para enviar');
+    return;
+  }
 
   const datos = extraerDatosOCR(texto);
   const params = new URLSearchParams(datos).toString();
@@ -147,7 +185,8 @@ enviarBtn.addEventListener('click', () => {
   enviarBtn.textContent = 'Enviando...';
 
   fetch(
-    `https://script.google.com/macros/s/AKfycbwdAaj3-gRgFRbrzo1Oe3Vxo4fa4kXyr_8xzcpQNmlmHamjCmc9u_wJboWCz-W-9J4B/exec?${params}`
+    'https://script.google.com/macros/s/AKfycbwdAaj3-gRgFRbrzo1Oe3Vxo4fa4kXyr_8xzcpQNmlmHamjCmc9u_wJboWCz-W-9J4B/exec?' +
+      params
   )
     .then((response) => {
       enviarBtn.disabled = false;
@@ -159,10 +198,9 @@ enviarBtn.addEventListener('click', () => {
         alert('❌ Error al enviar los datos');
       }
     })
-    .catch((err) => {
+    .catch((error) => {
       enviarBtn.disabled = false;
       enviarBtn.textContent = 'Enviar';
-      console.error('Conexión fallida:', err);
-      alert('❌ Error de conexión con Google Sheets');
+      console.error('Error de conexión con Google Sheets:', error);
     });
 });
