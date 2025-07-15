@@ -89,7 +89,7 @@ function extraerDatosOCR(texto) {
   let variedad = '';
   let fechas = [];
 
-  // 1. Buscar partida
+  // PARTIDA
   for (const l of lineas) {
     const match = l.match(/\b\d{7}\b/);
     if (match) {
@@ -98,7 +98,7 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // 2. Buscar lote
+  // LOTE
   for (const l of lineas) {
     const match = l.match(/\b[A-Z0-9\-]{6,}\b/);
     if (match && match[0] !== partida) {
@@ -107,7 +107,7 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // 3. Buscar fechas
+  // FECHAS
   for (const l of lineas) {
     const match = [
       ...l.matchAll(/\b\d{2}[-\/]?\d{2}\b/g),
@@ -133,34 +133,36 @@ function extraerDatosOCR(texto) {
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
 
-  // 4. Buscar especie desde lista
+  // ESPECIE desde lista
   especie = especies.find((e) => lineas.some((l) => l.includes(e))) || '';
 
-  // 5. Buscar variedad real (línea que contiene palabras clave o típicas)
-  const idxVariedad = lineas.findIndex((l) =>
-    /(COGOLLO|ROMANA|ALBAHACA|VERDE|ROJA|LOLLI|ESCAROLA|ENDIVIA|A\d+)/.test(l)
-  );
+  // VARIEDAD con palabras clave
+  const claveVariedad =
+    /(COGOLLO|ROMANA|ALBAHACA|VERDE|ROJA|LOLLI|ESCAROLA|ENDIVIA|A\d+)/;
+  const idxVariedad = lineas.findIndex((l) => claveVariedad.test(l));
 
   if (idxVariedad >= 0) {
     variedad = lineas[idxVariedad]
-      .replace(/\b\d{1,4}\b/g, '') // quitar números tipo 1200 o 1
+      .replace(/\b\d{1,4}\b/g, '') // quita números como 1200, 1
       .trim();
-  }
 
-  // 6. Fallback: si no hay especie pero sí variedad, usamos línea anterior como especie
-  if (!especie && idxVariedad > 0) {
-    const candidata = lineas[idxVariedad - 1];
-    if (
-      candidata !== partida &&
-      candidata !== lote &&
-      !candidata.match(/\b\d{2}-\d{2}\b/) &&
-      candidata.length > 2
-    ) {
-      especie = candidata;
+    // Fallback de especie con validación
+    if (!especie && idxVariedad > 0) {
+      const candidata = lineas[idxVariedad - 1];
+      if (
+        candidata !== partida &&
+        candidata !== lote &&
+        !candidata.includes(partida) &&
+        !candidata.includes(lote) &&
+        !candidata.match(/\b\d{2}[-\/]?\d{2}\b/) &&
+        !candidata.match(/\b\d{4,}\b/)
+      ) {
+        especie = candidata;
+      }
     }
   }
 
-  // 7. Evitar especie = variedad
+  // Prevención: si especie y variedad coinciden, eliminar especie
   if (especie && variedad && especie === variedad) especie = '';
 
   return {
