@@ -59,22 +59,67 @@ editarBtn.addEventListener('click', () => {
 
 // 🧠 Función para extraer datos clave del texto OCR
 function extraerDatosOCR(texto) {
-  const partida = texto.match(/\b\d{7}\b/)?.[0] || '';
-  const lote = texto.match(/\b([A-Z0-9\-]{6,10})\b/g)?.pop() || '';
-  const fechas = [...texto.matchAll(/\b\d{2}-\d{2}\b/g)].map((f) => f[0]);
+  const lineas = texto
+    .toUpperCase()
+    .replace(/[^\w\s\-\/]/g, '') // quitar símbolos raros
+    .split(/\n|\r/)
+    .map((linea) => linea.trim())
+    .filter(Boolean);
+
+  const especies = [
+    'LECHUGA',
+    'AROMATICAS Y HOJAS',
+    'ACELGA',
+    'ESPINACA',
+    'CANONIGO',
+    'RUCULA',
+    'MOSTAZA',
+    'BORRAJA',
+    'ESCAROLA',
+    'ENDIVIA',
+    'TATSOI',
+    'PAK CHOI',
+  ];
+
+  let partida = '';
+  let lote = '';
+  let especie = '';
+  let variedad = '';
+  let fechas = [];
+
+  for (const linea of lineas) {
+    if (!partida && /^\d{7}$/.test(linea)) partida = linea;
+    if (!lote && /^[A-Z0-9\-]{6,}$/.test(linea) && !/^\d{7}$/.test(linea))
+      lote = linea;
+    if (!especie) {
+      especie = especies.find((e) => linea.includes(e)) || '';
+    }
+    if (/\b\d{2}[-\/]\d{2}\b/.test(linea)) {
+      fechas.push(linea.match(/\d{2}[-\/]\d{2}/)[0]);
+    }
+  }
+
+  // Ordenar fechas para que la más antigua sea siembra
+  fechas = fechas.sort((a, b) => {
+    const [d1, m1] = a.split('-').map(Number);
+    const [d2, m2] = b.split('-').map(Number);
+    return m1 !== m2 ? m1 - m2 : d1 - d2;
+  });
+
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
-  const especie =
-    texto.match(/\b(LECHUGA|AROM[AÁ]TICAS Y HOJAS)\b/i)?.[0].toUpperCase() ||
-    '';
-  const variedad =
-    texto
-      .replace(/\s+/g, ' ')
-      .match(
-        /(?:LECHUGA|AROM[AÁ]TICAS Y HOJAS)\s+([\w\s\-]+?)\s+\b[A-Z0-9\-]{6,10}\b/i
-      )?.[1]
-      ?.trim()
-      ?.toUpperCase() || '';
+
+  // Sacar variedad (lo que está entre especie y lote/fechas)
+  const especieIndex = lineas.findIndex((l) => l.includes(especie));
+  const corte = lineas
+    .slice(especieIndex + 1)
+    .filter(
+      (l) =>
+        !lote.includes(l) &&
+        !l.includes(fecha_siembra) &&
+        !l.includes(fecha_carga)
+    );
+  variedad = corte.slice(0, 2).join(' ').trim();
 
   return {
     partida,
