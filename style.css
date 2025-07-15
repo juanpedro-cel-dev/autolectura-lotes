@@ -49,6 +49,14 @@ main {
   padding: 30px 20px;
 }
 
+#consejo {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0 auto 1rem;
+  max-width: 500px;
+  line-height: 1.4;
+}
+
 .camara {
   margin-bottom: 30px;
 }
@@ -60,6 +68,7 @@ video {
   border-radius: 12px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
+
 /* 📷 Centrado del botón debajo del vídeo */
 .video-wrapper {
   display: flex;
@@ -156,5 +165,9 @@ footer {
 
   header .logo {
     width: 120px;
+  }
+
+  #consejo {
+    font-size: 0.85rem;
   }
 }
