@@ -5,10 +5,26 @@ const resultado = document.getElementById('resultado');
 const enviarBtn = document.getElementById('enviar');
 const editarBtn = document.getElementById('editar');
 
-// 🟢 Activar cámara trasera o predeterminada
+// 🟢 Activar cámara trasera o predeterminada con enfoque táctil
 navigator.mediaDevices
   .getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
-  .then((stream) => (video.srcObject = stream))
+  .then((stream) => {
+    video.srcObject = stream;
+
+    // 👆 Reenfoque por click si la cámara lo soporta
+    video.addEventListener('click', () => {
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities?.();
+      if (capabilities?.focusMode?.includes('continuous')) {
+        track
+          .applyConstraints({ advanced: [{ focusMode: 'continuous' }] })
+          .then(() => console.log('🔍 Autofocus reactivado'))
+          .catch((err) =>
+            console.warn('⚠️ No se pudo aplicar autofocus:', err)
+          );
+      }
+    });
+  })
   .catch(() =>
     navigator.mediaDevices
       .getUserMedia({ video: true })
@@ -19,35 +35,27 @@ navigator.mediaDevices
       })
   );
 
-// 📸 Capturar imagen y hacer OCR
+// 📸 Capturar imagen y hacer OCR con binarización
 capturarBtn.addEventListener('click', () => {
   const ctx = canvas.getContext('2d');
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  // 🖼️ Filtro de binarización para resaltar texto (umbral simple)
+
+  // 🖼️ Filtro binario
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
-
   for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-
-    const avg = 0.3 * r + 0.59 * g + 0.11 * b;
-    const value = avg > 160 ? 255 : 0; // ← puedes ajustar el umbral (160 ideal para móvil)
-
-    data[i] = data[i + 1] = data[i + 2] = value; // blanco o negro
+    const avg = 0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2];
+    const value = avg > 160 ? 255 : 0;
+    data[i] = data[i + 1] = data[i + 2] = value;
   }
-
   ctx.putImageData(imageData, 0, 0);
 
   capturarBtn.disabled = true;
   capturarBtn.textContent = 'Procesando...';
 
-  Tesseract.recognize(canvas, 'eng', {
-    logger: (m) => console.log(m),
-  })
+  Tesseract.recognize(canvas, 'eng', { logger: (m) => console.log(m) })
     .then(({ data: { text } }) => {
       resultado.value = text.trim();
       capturarBtn.disabled = false;
@@ -61,7 +69,7 @@ capturarBtn.addEventListener('click', () => {
     });
 });
 
-// ✏️ Editar manualmente el resultado
+// ✏️ Edición manual
 editarBtn.addEventListener('click', () => {
   if (resultado.hasAttribute('readonly')) {
     resultado.removeAttribute('readonly');
@@ -73,7 +81,7 @@ editarBtn.addEventListener('click', () => {
   }
 });
 
-// 🧠 Función inteligente para extraer los datos
+// 🧠 Extraer datos con limpieza avanzada
 function extraerDatosOCR(texto) {
   const limpiar = (str) =>
     str
@@ -83,7 +91,6 @@ function extraerDatosOCR(texto) {
       .trim();
 
   const lineas = texto.split(/\r?\n/).map(limpiar).filter(Boolean);
-
   const especies = [
     'LECHUGA',
     'AROMATICAS Y HOJAS',
@@ -99,13 +106,12 @@ function extraerDatosOCR(texto) {
     'PAK CHOI',
   ];
 
-  let partida = '';
-  let lote = '';
-  let especie = '';
-  let variedad = '';
-  let fechas = [];
+  let partida = '',
+    lote = '',
+    especie = '',
+    variedad = '',
+    fechas = [];
 
-  // PARTIDA
   for (const l of lineas) {
     const match = l.match(/\b\d{7}\b/);
     if (match) {
@@ -114,7 +120,6 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // LOTE
   for (const l of lineas) {
     const match = l.match(/\b[A-Z0-9\-]{6,}\b/);
     if (match && match[0] !== partida) {
@@ -123,7 +128,6 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // FECHAS
   for (const l of lineas) {
     const match = [
       ...l.matchAll(/\b\d{2}[-\/]?\d{2}\b/g),
@@ -141,28 +145,21 @@ function extraerDatosOCR(texto) {
     .filter((f) => /^\d{2}-\d{2}$/.test(f))
     .filter((f, i, arr) => arr.indexOf(f) === i)
     .sort((a, b) => {
-      const [d1, m1] = a.split('-').map(Number);
-      const [d2, m2] = b.split('-').map(Number);
+      const [d1, m1] = a.split('-').map(Number),
+        [d2, m2] = b.split('-').map(Number);
       return m1 !== m2 ? m1 - m2 : d1 - d2;
     });
 
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
 
-  // ESPECIE desde lista
   especie = especies.find((e) => lineas.some((l) => l.includes(e))) || '';
 
-  // VARIEDAD con palabras clave
   const claveVariedad =
     /(COGOLLO|ROMANA|ALBAHACA|VERDE|ROJA|LOLLI|ESCAROLA|ENDIVIA|A\d+)/;
   const idxVariedad = lineas.findIndex((l) => claveVariedad.test(l));
-
   if (idxVariedad >= 0) {
-    variedad = lineas[idxVariedad]
-      .replace(/\b\d{1,4}\b/g, '') // quita números como 1200, 1
-      .trim();
-
-    // Fallback de especie con validación
+    variedad = lineas[idxVariedad].replace(/\b\d{1,4}\b/g, '').trim();
     if (!especie && idxVariedad > 0) {
       const candidata = lineas[idxVariedad - 1];
       if (
@@ -170,25 +167,17 @@ function extraerDatosOCR(texto) {
         candidata !== lote &&
         !candidata.includes(partida) &&
         !candidata.includes(lote) &&
-        !candidata.match(/\b\d{2}[-\/]?\d{2}\b/) &&
-        !candidata.match(/\b\d{4,}\b/)
+        !/\b\d{2}[-\/]?\d{2}\b/.test(candidata) &&
+        !/\b\d{4,}\b/.test(candidata)
       ) {
         especie = candidata;
       }
     }
   }
 
-  // Prevención: si especie y variedad coinciden, eliminar especie
   if (especie && variedad && especie === variedad) especie = '';
 
-  return {
-    partida,
-    lote,
-    especie,
-    variedad,
-    fecha_siembra,
-    fecha_carga,
-  };
+  return { partida, lote, especie, variedad, fecha_siembra, fecha_carga };
 }
 
 // 📤 Enviar a Google Sheets
