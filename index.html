@@ -18,9 +18,15 @@
     </header>
 
     <main>
+      <p id="consejo">
+        📸 Asegúrate de que la etiqueta esté enfocada y bien iluminada.<br />
+        Pulsa sobre el vídeo si tu móvil lo permite para reenfocar
+        automáticamente.
+      </p>
+
       <div class="camara">
         <div class="video-wrapper">
-          <video id="video" autoplay></video>
+          <video id="video" autoplay playsinline></video>
           <button id="capturar">📸 Capturar</button>
         </div>
         <canvas id="canvas" style="display: none"></canvas>
@@ -28,15 +34,21 @@
 
       <div class="resultado">
         <h2>Resultado OCR:</h2>
-        <textarea id="resultado" readonly></textarea>
+        <textarea
+          id="resultado"
+          readonly
+          placeholder="Aquí aparecerá el texto OCR..."
+        ></textarea>
         <br />
         <button id="editar">✏️ Editar manualmente</button>
         <button id="enviar">📤 Enviar a Google Sheets</button>
       </div>
     </main>
+
     <footer>
       App desarrollada por Juan Pedro Celdrán Danta — BabyPlant I+D · v1.0
     </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
     <script src="script.js"></script>
   </body>
