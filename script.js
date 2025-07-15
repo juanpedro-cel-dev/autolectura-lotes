@@ -15,7 +15,7 @@ navigator.mediaDevices
       .then((stream) => (video.srcObject = stream))
       .catch((err) => {
         alert('❌ No se pudo acceder a ninguna cámara');
-        console.error('Error de cámara:', err);
+        console.error(err);
       })
   );
 
@@ -45,7 +45,7 @@ capturarBtn.addEventListener('click', () => {
     });
 });
 
-// ✏️ Activar edición manual
+// ✏️ Editar manualmente el resultado
 editarBtn.addEventListener('click', () => {
   if (resultado.hasAttribute('readonly')) {
     resultado.removeAttribute('readonly');
@@ -57,7 +57,7 @@ editarBtn.addEventListener('click', () => {
   }
 });
 
-// 🧠 Extraer datos desde texto OCR según estructura real y fallback de especie
+// 🧠 Función inteligente para extraer los datos
 function extraerDatosOCR(texto) {
   const limpiar = (str) =>
     str
@@ -89,7 +89,7 @@ function extraerDatosOCR(texto) {
   let variedad = '';
   let fechas = [];
 
-  // Buscar partida aunque esté dentro de línea mixta
+  // Buscar partida (7 dígitos) aunque esté incrustada
   for (const l of lineas) {
     const match = l.match(/\b\d{7}\b/);
     if (match) {
@@ -98,7 +98,7 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // Buscar lote: primer candidato alfanumérico ≥6 y diferente a partida
+  // Buscar lote (alfanumérico >=6 distinto de partida)
   for (const l of lineas) {
     const match = l.match(/\b[A-Z0-9\-]{6,}\b/);
     if (match && match[0] !== partida) {
@@ -107,7 +107,7 @@ function extraerDatosOCR(texto) {
     }
   }
 
-  // Buscar fechas válidas
+  // Buscar fechas (ddmm o dd-mm o dd/mm)
   for (const l of lineas) {
     const match = [
       ...l.matchAll(/\b\d{2}[-\/]?\d{2}\b/g),
@@ -123,7 +123,7 @@ function extraerDatosOCR(texto) {
 
   fechas = fechas
     .filter((f) => /^\d{2}-\d{2}$/.test(f))
-    .filter((f, i, arr) => arr.indexOf(f) === i) // eliminar duplicados
+    .filter((f, i, arr) => arr.indexOf(f) === i) // quitar duplicados
     .sort((a, b) => {
       const [d1, m1] = a.split('-').map(Number);
       const [d2, m2] = b.split('-').map(Number);
@@ -133,30 +133,23 @@ function extraerDatosOCR(texto) {
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
 
-  // Especie
+  // Buscar especie en lista
   especie = especies.find((e) => lineas.some((l) => l.includes(e))) || '';
 
-  // Variedad = línea que contiene "COGOLLO", "ROMANA", etc.
-  const claveVariedad = [
-    'COGOLLO',
-    'ROMANA',
-    'ALBAHACA',
-    'LOLLI',
-    'ESCAROLA',
-    'ENDIVIA',
-  ];
-  const idxVariedad = lineas.findIndex((l) =>
-    claveVariedad.some((k) => l.includes(k))
+  // Buscar variedad (línea que no sea partida/lote/especie/fecha)
+  const reservadas = [partida, lote, especie, fecha_siembra, fecha_carga];
+  const posiblesVariedades = lineas.filter(
+    (l) => !reservadas.includes(l) && !/^\d{1,4}$/.test(l)
   );
-  if (idxVariedad >= 0) {
-    variedad = lineas[idxVariedad]
+
+  if (posiblesVariedades.length > 0) {
+    variedad = posiblesVariedades[0]
       .replace(/\b\d{1,4}\b/g, '') // quitar números sueltos
       .trim();
-    // Si no hay especie detectada, usamos la anterior como fallback
-    if (!especie && idxVariedad > 0) {
-      especie = lineas[idxVariedad - 1].trim();
-    }
   }
+
+  // Si especie == variedad, anulamos especie
+  if (especie && especie === variedad) especie = '';
 
   return {
     partida,
@@ -168,7 +161,7 @@ function extraerDatosOCR(texto) {
   };
 }
 
-// 📤 Enviar datos a Google Sheets
+// 📤 Enviar a Google Sheets
 enviarBtn.addEventListener('click', () => {
   const texto = resultado.value;
   resultado.setAttribute('readonly', true);
@@ -199,9 +192,9 @@ enviarBtn.addEventListener('click', () => {
         alert('❌ Error al enviar los datos');
       }
     })
-    .catch((error) => {
+    .catch((err) => {
       enviarBtn.disabled = false;
       enviarBtn.textContent = 'Enviar';
-      console.error('Error de conexión con Google Sheets:', error);
+      console.error('Error de conexión con Google Sheets:', err);
     });
 });
