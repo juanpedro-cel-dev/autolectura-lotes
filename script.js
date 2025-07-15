@@ -59,16 +59,21 @@ editarBtn.addEventListener('click', () => {
 
 // 🧠 Función inteligente de extracción OCR
 function extraerDatosOCR(texto) {
-  const limpiar = (str) =>
-    str
-      .toUpperCase()
-      .replace(/[^A-Z0-9ÁÉÍÓÚÜÑ\s\-\/]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+  const t = texto
+    .toUpperCase()
+    .replace(/[^A-Z0-9ÁÉÍÓÚÜÑ\s\-\/]/g, ' ') // borrar todo lo raro
+    .replace(/\s+/g, ' ')
+    .trim();
 
-  const lineas = texto.split(/\r?\n/).map(limpiar).filter(Boolean);
+  // 1) Partida: primer grupo de 7 dígitos
+  const partida = (t.match(/\b\d{7}\b/) || [])[0] || '';
 
-  const especiesReales = [
+  // 2) Lote: primer bloque ≥6 caracteres alfanum/guión distinto de la partida
+  const candidatosLote = t.match(/\b[A-Z0-9\-]{6,}\b/g) || [];
+  const lote = candidatosLote.find((x) => x !== partida) || '';
+
+  // 3) Especie: a partir de la lista real de BabyPlant
+  const especies = [
     'LECHUGA',
     'AROMATICAS Y HOJAS',
     'ACELGA',
@@ -82,67 +87,47 @@ function extraerDatosOCR(texto) {
     'TATSOI',
     'PAK CHOI',
   ];
+  const especie = especies.find((e) => t.includes(e)) || '';
 
-  // Variantes para tolerar errores de OCR
-  const variantesEspecie = especiesReales.flatMap((e) => {
-    const base = e.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    return [e, base, base.replace(/C|K/g, 'C'), base.replace(/G/g, 'C')];
-  });
-
-  let partida = '';
-  let lote = '';
-  let especie = '';
-  let fechasRaw = [];
-
-  for (const linea of lineas) {
-    if (!partida && /^\d{7}$/.test(linea)) {
-      partida = linea;
-      continue;
-    }
-    if (!lote && /^[A-Z0-9\-]{6,}$/.test(linea) && !/^\d{7}$/.test(linea)) {
-      lote = linea;
-      continue;
-    }
-    if (!especie) {
-      const found = variantesEspecie.find((esp) => linea.includes(esp));
-      if (found) especie = found;
-    }
-    // Buscamos fechas ddmm, dd-mm o dd/mm
-    const bloque = [...linea.matchAll(/\b\d{2}[-\/]?\d{2}\b/g)].map(
-      (m) => m[0]
-    );
-    fechasRaw.push(...bloque);
+  // 4) Variedad: lo que queda entre especie y lote
+  let variedad = '';
+  if (especie && lote) {
+    const rx = new RegExp(especie + '\\s+([A-Z0-9\\s\\-]+?)\\s+' + lote);
+    const m = t.match(rx);
+    if (m) variedad = m[1].trim();
+  }
+  // Si no hubo match, como fallback toma el bloque de 2–3 palabras más largo
+  if (!variedad) {
+    const bloques =
+      t
+        .split(lote)[0]
+        .split(especie)[1]
+        ?.trim()
+        .split(' ')
+        .filter((w) => w.length > 3) || [];
+    variedad = bloques.slice(0, 3).join(' ');
   }
 
-  // Normalizar y ordenar fechas
-  const fechas = fechasRaw
+  // 5) Fechas: busca dd-mm, dd/mm o ddmm
+  const rawFechas = [
+    ...(t.match(/\b\d{2}[-\/]\d{2}\b/g) || []),
+    ...(t.match(/\b\d{4}\b/g) || []),
+  ];
+  const fechas = rawFechas
     .map((f) =>
-      f.length === 4 ? `${f.slice(0, 2)}-${f.slice(2)}` : f.replace('/', '-')
+      f.includes('-') || f.includes('/')
+        ? f.replace('/', '-')
+        : f.slice(0, 2) + '-' + f.slice(2)
     )
     .filter((f) => /^\d{2}-\d{2}$/.test(f))
     .sort((a, b) => {
-      const [d1, m1] = a.split('-').map(Number);
-      const [d2, m2] = b.split('-').map(Number);
+      const [d1, m1] = a.split('-').map(Number),
+        [d2, m2] = b.split('-').map(Number);
       return m1 !== m2 ? m1 - m2 : d1 - d2;
     });
 
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
-
-  // Extraer variedad: líneas tras la especie hasta lote o fechas
-  const idxEsp = lineas.findIndex((l) =>
-    especiesReales.some((e) => l.includes(e))
-  );
-  const candidatas = idxEsp >= 0 ? lineas.slice(idxEsp + 1) : lineas;
-  const variedad =
-    candidatas.find(
-      (l) =>
-        l.length > 3 &&
-        l !== partida &&
-        l !== lote &&
-        l !== fecha_siembra &&
-        l !== fecha_carga
-    ) || '';
 
   return { partida, lote, especie, variedad, fecha_siembra, fecha_carga };
 }
