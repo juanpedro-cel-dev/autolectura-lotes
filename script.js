@@ -25,6 +25,22 @@ capturarBtn.addEventListener('click', () => {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  // 🖼️ Filtro de binarización para resaltar texto (umbral simple)
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    const avg = 0.3 * r + 0.59 * g + 0.11 * b;
+    const value = avg > 160 ? 255 : 0; // ← puedes ajustar el umbral (160 ideal para móvil)
+
+    data[i] = data[i + 1] = data[i + 2] = value; // blanco o negro
+  }
+
+  ctx.putImageData(imageData, 0, 0);
 
   capturarBtn.disabled = true;
   capturarBtn.textContent = 'Procesando...';
