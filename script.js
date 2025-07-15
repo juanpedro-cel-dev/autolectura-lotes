@@ -5,9 +5,16 @@ const resultado = document.getElementById('resultado');
 const enviarBtn = document.getElementById('enviar');
 const editarBtn = document.getElementById('editar');
 
-// 🟢 Activar cámara trasera o predeterminada con enfoque táctil
+// 🟢 Activar cámara trasera con zoom digital y reenfoque táctil
 navigator.mediaDevices
-  .getUserMedia({ video: { facingMode: { ideal: 'environment' } } })
+  .getUserMedia({
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      advanced: [{ zoom: 2.0 }],
+    },
+  })
   .then((stream) => {
     video.srcObject = stream;
 
@@ -42,7 +49,6 @@ capturarBtn.addEventListener('click', () => {
   canvas.height = video.videoHeight;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // 🖼️ Filtro binario
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
