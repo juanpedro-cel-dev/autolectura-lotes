@@ -84,44 +84,46 @@ function extraerDatosOCR(texto) {
   ];
 
   let partida = '';
-  let unidades = '';
   let lote = '';
   let especie = '';
   let variedad = '';
   let fechas = [];
 
-  for (let i = 0; i < lineas.length; i++) {
-    const l = lineas[i];
-
-    // Partida
-    if (!partida && /^\d{7}$/.test(l)) {
-      partida = l;
-      if (lineas[i + 1] && /^\d{1,5}$/.test(lineas[i + 1])) {
-        unidades = lineas[i + 1];
-      }
+  // Buscar partida aunque esté dentro de línea mixta
+  for (const l of lineas) {
+    const match = l.match(/\b\d{7}\b/);
+    if (match) {
+      partida = match[0];
+      break;
     }
+  }
 
-    // Lote
-    if (!lote && /^[A-Z0-9\-]{6,}$/.test(l) && !/^\d{7}$/.test(l)) {
-      lote = l;
+  // Buscar lote: primer candidato alfanumérico ≥6 y diferente a partida
+  for (const l of lineas) {
+    const match = l.match(/\b[A-Z0-9\-]{6,}\b/);
+    if (match && match[0] !== partida) {
+      lote = match[0];
+      break;
     }
+  }
 
-    // Fechas
-    const fechasEnLinea = [
+  // Buscar fechas válidas
+  for (const l of lineas) {
+    const match = [
       ...l.matchAll(/\b\d{2}[-\/]?\d{2}\b/g),
       ...l.matchAll(/\b\d{4}\b/g),
     ];
-    fechas.push(
-      ...fechasEnLinea.map((m) =>
-        m[0].includes('-') || m[0].includes('/')
-          ? m[0].replace('/', '-')
-          : m[0].slice(0, 2) + '-' + m[0].slice(2)
-      )
-    );
+    for (const m of match) {
+      const raw = m[0].replace('/', '-');
+      const normal =
+        raw.length === 4 ? raw.slice(0, 2) + '-' + raw.slice(2) : raw;
+      fechas.push(normal);
+    }
   }
 
   fechas = fechas
     .filter((f) => /^\d{2}-\d{2}$/.test(f))
+    .filter((f, i, arr) => arr.indexOf(f) === i) // eliminar duplicados
     .sort((a, b) => {
       const [d1, m1] = a.split('-').map(Number);
       const [d2, m2] = b.split('-').map(Number);
@@ -131,29 +133,28 @@ function extraerDatosOCR(texto) {
   const fecha_siembra = fechas[0] || '';
   const fecha_carga = fechas[1] || '';
 
-  // Especie: de la lista si la hay
-  const especieEncontrada = especies.find((e) =>
-    lineas.some((l) => l.includes(e))
+  // Especie
+  especie = especies.find((e) => lineas.some((l) => l.includes(e))) || '';
+
+  // Variedad = línea que contiene "COGOLLO", "ROMANA", etc.
+  const claveVariedad = [
+    'COGOLLO',
+    'ROMANA',
+    'ALBAHACA',
+    'LOLLI',
+    'ESCAROLA',
+    'ENDIVIA',
+  ];
+  const idxVariedad = lineas.findIndex((l) =>
+    claveVariedad.some((k) => l.includes(k))
   );
-  if (especieEncontrada) {
-    especie = especieEncontrada;
-  }
-
-  // Variedad: entre especie y lote
-  let idxEspecie = lineas.findIndex((l) => l.includes(especie));
-  let idxLote = lineas.findIndex((l) => l === lote);
-  if (idxEspecie >= 0 && idxLote > idxEspecie) {
-    variedad = lineas
-      .slice(idxEspecie + 1, idxLote)
-      .join(' ')
+  if (idxVariedad >= 0) {
+    variedad = lineas[idxVariedad]
+      .replace(/\b\d{1,4}\b/g, '') // quitar números sueltos
       .trim();
-  }
-
-  // Fallback si no hay especie: usar línea anterior a la variedad
-  if (!especie && variedad) {
-    const idxVariedad = lineas.findIndex((l) => variedad.includes(l));
-    if (idxVariedad > 0) {
-      especie = lineas[idxVariedad - 1];
+    // Si no hay especie detectada, usamos la anterior como fallback
+    if (!especie && idxVariedad > 0) {
+      especie = lineas[idxVariedad - 1].trim();
     }
   }
 
